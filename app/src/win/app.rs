@@ -1360,6 +1360,14 @@ impl App {
     /// Publishes everything that changed since the last call.
     pub fn sync(&mut self) {
         let _t = crate::trace::span("sync");
+        self.put_flag(
+            "CopyPathEnabled",
+            self.image_file_path().is_some(),
+            |sink, enabled| {
+                sink.copy_path_enabled.set_if_changed(enabled);
+                Ok(())
+            },
+        );
         let events = PENDING_EVENTS.swap(0, Ordering::Relaxed)
             | with_editor(|e| e.take_events()).unwrap_or(0);
         let Some(s) = self.snapshot() else { return };
@@ -2079,6 +2087,43 @@ impl App {
                 }
             }
         });
+    }
+
+    fn image_file_path(&self) -> Option<&Path> {
+        if self.video.is_some() {
+            return None;
+        }
+        self.source.as_deref().or(self.path.as_deref())
+    }
+
+    pub fn copy_path(&mut self) {
+        let Some(path) = self.image_file_path() else {
+            return;
+        };
+        let copied = std::path::absolute(path).and_then(|path| {
+            let owner = winutil::main_hwnd();
+            #[cfg(windows)]
+            {
+                jiffshot_capture::clipboard::copy_path(&path, owner)
+            }
+            #[cfg(not(windows))]
+            {
+                let text = path.to_str().ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "the path is not valid Unicode",
+                    )
+                })?;
+                jiffshot_capture::clipboard::copy_text(text, owner)
+            }
+        });
+        match copied {
+            Ok(()) => {
+                self.object_clipboard = None;
+                self.set_status("Copied the file path to the clipboard");
+            }
+            Err(error) => self.set_status(format!("Could not copy the file path: {error}")),
+        }
     }
 
     pub fn copy_image(&mut self) {

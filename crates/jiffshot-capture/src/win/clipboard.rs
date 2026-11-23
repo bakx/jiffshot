@@ -246,11 +246,16 @@ pub fn copy(frame: &Frame, owner: isize) -> io::Result<()> {
 
 /// Replaces the clipboard contents with text.
 pub fn copy_text(text: &str, owner: isize) -> io::Result<()> {
-    let units: Vec<u8> = text
-        .encode_utf16()
-        .chain(Some(0))
-        .flat_map(|u| u.to_le_bytes())
-        .collect();
+    copy_unicode_text(text.encode_utf16().chain(Some(0)), owner)
+}
+
+/// Copies a file path as text, preserving its native UTF-16 spelling.
+pub fn copy_path(path: &std::path::Path, owner: isize) -> io::Result<()> {
+    copy_unicode_text(crate::wide_path(path), owner)
+}
+
+fn copy_unicode_text(text: impl IntoIterator<Item = u16>, owner: isize) -> io::Result<()> {
+    let units: Vec<u8> = text.into_iter().flat_map(u16::to_le_bytes).collect();
     put(owner, &[(CF_UNICODETEXT, &units)])
 }
 

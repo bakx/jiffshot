@@ -129,7 +129,7 @@ pub(super) fn library_tile_for_selftest(scope: &AppScope, key: u64) -> Result<Wi
 }
 
 /// The Editor and Library tabs, capture and creation actions, the tool palette,
-/// the Properties and Effects toggles, Copy All and Share ▾.
+/// the Properties and Effects toggles, Copy Path, Copy All and Share ▾.
 fn top_bar(ctx: &Ctx) -> El<Border> {
     let (s, theme) = (ctx.sink, ctx.theme);
     let expanded = s.library_expanded;
@@ -165,28 +165,15 @@ fn top_bar(ctx: &Ctx) -> El<Border> {
             )
             .command(main_common::act(move || expanded.set_if_changed(library)))
     };
-    // Panel toggles (`Properties`, `Effects`) keep their icon on narrow windows and
-    // show their text label when wide; action buttons (`Create`, `Copy All`, `Share`)
-    // keep their text label on narrow windows and add their leading icon when wide.
-    let toggle_content = move |path_data: &'static str, label: &str, active: rustolonia::Signal<bool>| {
-        let icon = Path::el()
+    // Panel toggles are icon-only. Create, Copy All and Share add their icons on wide windows.
+    let toggle_content = move |path_data: &'static str, active: rustolonia::Signal<bool>| {
+        Path::el()
             .width(14.0)
             .height(14.0)
             .data(path_data)
             .stroke(move || Some(if active.get() { solid(WHITE) } else { theme.get(Tone::Text) }))
             .stroke_thickness(1.4)
-            .vertical_alignment(VerticalAlignment::Center);
-        let text = TextBlock::el()
-            .text(label.to_owned())
-            .margin((6.0, 0.0, 0.0, 0.0))
             .vertical_alignment(VerticalAlignment::Center)
-            .visible(wide_chrome)
-            .foreground(move || if active.get() { solid(WHITE) } else { theme.get(Tone::Text) });
-        StackPanel::el()
-            .orientation(Orientation::Horizontal)
-            .vertical_alignment(VerticalAlignment::Center)
-            .child(icon)
-            .child(text)
     };
     let action_content = move |path_data: &'static str, label: &str, chevron: bool| {
         let icon = Path::el()
@@ -274,7 +261,7 @@ fn top_bar(ctx: &Ctx) -> El<Border> {
         .child(
             ToggleButton::el()
                 .name("TogglePropertiesPanel")
-                .content(toggle_content(vicons::PROPERTIES_SLIDERS, "Properties", s.show_side_bar.local()))
+                .content(toggle_content(vicons::PROPERTIES_SLIDERS, s.show_side_bar.local()))
                 .checked(s.show_side_bar.two_way())
                 .padding((10.0, 5.0))
                 .corner_radius(4.0)
@@ -283,11 +270,20 @@ fn top_bar(ctx: &Ctx) -> El<Border> {
         .child(
             ToggleButton::el()
                 .name("ToggleEffectsPanel")
-                .content(toggle_content(vicons::EFFECTS_SPARKLE, "Effects", s.show_effects.local()))
+                .content(toggle_content(vicons::EFFECTS_SPARKLE, s.show_effects.local()))
                 .checked(s.show_effects.two_way())
                 .padding((10.0, 5.0))
                 .corner_radius(4.0)
                 .tool_tip_tip("Show or hide the Effects panel"),
+        )
+        .child(
+            Button::el()
+                .name("CopyPath")
+                .content("Copy Path")
+                .padding((10.0, 5.0))
+                .corner_radius(4.0)
+                .tool_tip_tip("Copy the full file path to the clipboard")
+                .command(main_common::command(s.copy_path_enabled.local(), |m| m.copy_path())),
         )
         .child(
             Button::el()

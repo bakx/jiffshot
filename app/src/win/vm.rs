@@ -93,6 +93,7 @@ pub trait MainViewModel: Send + 'static {
     fn save_as(&mut self) -> Result<()>;
     fn export(&mut self) -> Result<()>;
     fn copy_image(&mut self) -> Result<()>;
+    fn copy_path(&mut self) -> Result<()>;
     fn paste(&mut self) -> Result<()>;
     fn new_capture(&mut self) -> Result<()>;
     fn combine_images(&mut self) -> Result<()>;
@@ -302,6 +303,8 @@ pub struct MainViewModelSink {
     pub export_enabled: Signal<bool>,
     /// Whether `copy_image` can run now.
     pub copy_image_enabled: Signal<bool>,
+    /// Whether the current image has a file path to copy.
+    pub copy_path_enabled: Signal<bool>,
     /// Whether `paste` can run now.
     pub paste_enabled: Signal<bool>,
     /// Whether `new_capture` can run now.
@@ -595,6 +598,7 @@ impl MainViewModelSink {
             save_as_enabled: Signal::new(true),
             export_enabled: Signal::new(true),
             copy_image_enabled: Signal::new(true),
+            copy_path_enabled: Signal::new(false),
             paste_enabled: Signal::new(true),
             new_capture_enabled: Signal::new(true),
             combine_images_enabled: Signal::new(true),

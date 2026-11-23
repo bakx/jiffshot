@@ -524,6 +524,7 @@ impl MainViewModel for Model {
     command!(save_as, |app| app.save_as());
     command!(export, |app| app.export());
     command!(copy_image, |app| app.copy_image());
+    command!(copy_path, |app| app.copy_path());
     command!(paste, |app| app.paste());
     command!(new_capture, |app| app.new_capture());
     command!(combine_images, |app| app.combine_images());
