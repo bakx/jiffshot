@@ -1425,6 +1425,7 @@ dependencies = [
  "gstreamer-app",
  "gstreamer-pbutils",
  "gstreamer-video",
+ "half",
  "image",
  "jiffshot-doc",
  "libc",

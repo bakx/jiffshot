@@ -1,8 +1,7 @@
-//! Monitors, the virtual desktop, GDI screen grabs and the mouse cursor.
-//!
-//! GDI `BitBlt` is used for now: it is fast enough to freeze the whole desktop
-//! before the overlay opens. Content that GDI cannot read (some
-//! hardware-overlay video) needs Windows.Graphics.Capture, planned later.
+//! Monitors, the virtual desktop, screen grabs and the mouse cursor.
+
+#[path = "hdr.rs"]
+mod hdr;
 
 use crate::gdi::Dib;
 use crate::{from_wide, Frame, Rect};
@@ -137,26 +136,15 @@ pub fn grab(r: Rect) -> io::Result<Frame> {
         ));
     }
     let _hidden = crate::visibility::hide()?;
-    let dib = Dib::new(r.width, r.height)?;
-    // SAFETY: the screen DC is released before returning; `dib` owns its DC.
-    unsafe {
-        let screen = GetDC(std::ptr::null_mut());
-        let copied = BitBlt(
-            dib.dc(),
-            0,
-            0,
-            r.width,
-            r.height,
-            screen,
-            r.x,
-            r.y,
-            SRCCOPY | CAPTUREBLT,
-        );
-        ReleaseDC(std::ptr::null_mut(), screen);
-        if copied == 0 {
-            return Err(io::Error::last_os_error());
-        }
+    match hdr::grab(r)? {
+        Some(frame) => Ok(frame),
+        None => grab_gdi(r),
     }
+}
+
+fn grab_gdi(r: Rect) -> io::Result<Frame> {
+    let mut dib = Dib::new(r.width, r.height)?;
+    copy_screen(&mut dib, r)?;
     Ok(dib.to_frame())
 }
 
@@ -182,7 +170,7 @@ impl Grabber {
     /// Returns [`io::ErrorKind::WouldBlock`] while another desktop, such as
     /// the UAC secure desktop, receives input. Retry when that desktop closes.
     pub fn grab(&mut self) -> io::Result<&[u8]> {
-        self.grab_with(input_desktop_available, copy_recording_frame)
+        self.grab_with(input_desktop_available, copy_screen)
     }
 
     fn grab_with(
@@ -248,7 +236,7 @@ fn input_desktop_available() -> io::Result<bool> {
     }
 }
 
-fn copy_recording_frame(dib: &mut Dib, rect: Rect) -> io::Result<()> {
+fn copy_screen(dib: &mut Dib, rect: Rect) -> io::Result<()> {
     // SAFETY: the screen DC is checked and released; the bitmap owns its DC.
     unsafe {
         let screen = GetDC(std::ptr::null_mut());
