@@ -1362,7 +1362,7 @@ impl App {
         let _t = crate::trace::span("sync");
         self.put_flag(
             "CopyPathEnabled",
-            self.image_file_path().is_some(),
+            self.current_file_path().is_some(),
             |sink, enabled| {
                 sink.copy_path_enabled.set_if_changed(enabled);
                 Ok(())
@@ -2089,15 +2089,12 @@ impl App {
         });
     }
 
-    fn image_file_path(&self) -> Option<&Path> {
-        if self.video.is_some() {
-            return None;
-        }
+    fn current_file_path(&self) -> Option<&Path> {
         self.source.as_deref().or(self.path.as_deref())
     }
 
     pub fn copy_path(&mut self) {
-        let Some(path) = self.image_file_path() else {
+        let Some(path) = self.current_file_path() else {
             return;
         };
         let copied = std::path::absolute(path).and_then(|path| {

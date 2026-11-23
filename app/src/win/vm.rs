@@ -303,7 +303,7 @@ pub struct MainViewModelSink {
     pub export_enabled: Signal<bool>,
     /// Whether `copy_image` can run now.
     pub copy_image_enabled: Signal<bool>,
-    /// Whether the current image has a file path to copy.
+    /// Whether the editor has a file path to copy.
     pub copy_path_enabled: Signal<bool>,
     /// Whether `paste` can run now.
     pub paste_enabled: Signal<bool>,
